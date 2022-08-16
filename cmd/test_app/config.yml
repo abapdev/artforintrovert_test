@@ -1,0 +1,8 @@
+listen:
+  paths:
+    base: "/testapp"
+  ports:
+    main: 3000
+Storage:
+   mongo:
+    connect: "mongodb://localhost:27017/"
