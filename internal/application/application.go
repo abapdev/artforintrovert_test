@@ -24,10 +24,9 @@ func Start(ctx context.Context) {
 	logrus.Info(fmt.Sprintf("Config from %+v was loaded", *configPath))
 
 	logrus.Info("Database initialization")
-	db, err := mongo.New(cfg.Storage.Mongo.Connect)
+	db, err := mongo.New(cfg)
 	if err != nil {
 		logrus.WithError(err).Fatal("Unable to connect to database")
-		return
 	}
 	logrus.Info("Database connected successful")
 
@@ -35,14 +34,14 @@ func Start(ctx context.Context) {
 	testApp, err := service.New(ctx, db)
 	if err != nil {
 		logrus.WithError(err).Fatal("Service do not started")
-		return
 	}
+	testApp.Refresh(ctx)
 	logrus.Info("Test service initialization successful")
 
 	restServer := http.New(ctx, testApp, cfg)
-	logrus.Info("Starting http API on http://localhost:" + cfg.Listen.Ports.Main)
+	logrus.Info("Starting http API on http://localhost:" + cfg.Listen.Ports.Main + cfg.Listen.Paths.Base)
 	go func() {
-		logrus.Fatal(restServer.Start())
+		logrus.Fatal(restServer.Start(ctx))
 	}()
 }
 

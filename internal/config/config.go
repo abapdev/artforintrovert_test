@@ -13,12 +13,10 @@ type Config struct {
 		Ports struct {
 			Main string `yaml:"main" env:"APP_HTTP_PORT" env-default:"3000" env-description:"HTTP port for http endpoint"`
 		} `yaml:"ports"`
-	} `yaml:"listen"`
-	Storage struct {
 		Mongo struct {
 			Connect string `yaml:"connect" env:"MONGO_PATH" env-default:"/" env-description:"Path to MongoDB"`
 		} `yaml:"mongo"`
-	} `yaml:"storage"`
+	} `yaml:"listen"`
 }
 
 func ReadConfig(configPath string) (*Config, error) {

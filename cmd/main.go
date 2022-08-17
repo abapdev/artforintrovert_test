@@ -1,4 +1,4 @@
-package test_app
+package main
 
 import (
 	"artforintrovert_test/internal/application"

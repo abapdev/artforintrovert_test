@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"artforintrovert_test/internal/config"
 	"artforintrovert_test/internal/domain/models"
 	"context"
 	"errors"
@@ -15,8 +16,10 @@ type Storage struct {
 	ConnectionString string
 }
 
-func New(ConnectionString string) (*Storage, error) {
-	cOpts := options.Client().ApplyURI(ConnectionString)
+func New(cfg *config.Config) (*Storage, error) {
+	connectString := cfg.Listen.Mongo.Connect
+	logrus.Info(connectString)
+	cOpts := options.Client().ApplyURI(connectString)
 	mClient, err := mongo.Connect(context.Background(), cOpts)
 	if err != nil {
 		return nil, err
@@ -31,24 +34,58 @@ func New(ConnectionString string) (*Storage, error) {
 	if err != nil {
 		return nil, err
 	}
+	//обойдемся без миграций, просто наполним БД хардкодом для теста API
+	//mCollection := mClient.Database("artforintrovert").Collection("test")
+	//data := []models.Data{
+	//	{
+	//		ID:    primitive.NewObjectID(),
+	//		Name:  "Jhon",
+	//		Phone: "11-22-33",
+	//	},
+	//	{
+	//		ID:    primitive.NewObjectID(),
+	//		Name:  "Boris",
+	//		Phone: "44-55-66",
+	//	},
+	//	{
+	//		ID:    primitive.NewObjectID(),
+	//		Name:  "Serena",
+	//		Phone: "77-88-99",
+	//	},
+	//	{
+	//		ID:    primitive.NewObjectID(),
+	//		Name:  "Jack",
+	//		Phone: "00-11-22",
+	//	},
+	//}
+	//items := make([]interface{}, 0, len(data))
+	//for _, b := range data {
+	//	items = append(items, b)
+	//}
+	//
+	//res, err := mCollection.InsertMany(context.Background(), items)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//logrus.Info("inserted ids: %v", res.InsertedIDs)
+
 	return &Storage{
-		ConnectionString: ConnectionString,
+		ConnectionString: connectString,
 	}, nil
 }
-func (st *Storage) GetList(ctx context.Context) ([]models.Data, error) {
-	logrus.Info("GetList in Mongo Storage")
-	sd, err := st.readFromMongoDB(ctx, &models.Data{
-		ID:    primitive.ObjectID{},
-		Name:  "",
+func (st *Storage) GetList(ctx context.Context, name string) ([]models.Data, error) {
+	logrus.Info("Refresh data from Mongo Storage")
+	sd, err := st.readFromMongoDB(ctx, &models.DataJSON{
+		Name:  name,
 		Phone: "",
 	})
 	if err != nil {
-		logrus.WithError(err).Error("Can't read user from MongoDB")
+		logrus.WithError(err).Error("Can't read from MongoDB")
 		return nil, err
 	}
 	return sd, nil
 }
-func (st *Storage) UpdateData(ctx context.Context, data *models.Data) error {
+func (st *Storage) UpdateData(ctx context.Context, dataJson *models.DataJSON) error {
 	logrus.Info("UpdateData in Mongo Storage")
 	cOpts := options.Client().ApplyURI(st.ConnectionString)
 	mClient, err := mongo.Connect(ctx, cOpts)
@@ -63,16 +100,22 @@ func (st *Storage) UpdateData(ctx context.Context, data *models.Data) error {
 	}()
 
 	mCollection := mClient.Database("artforintrovert").Collection("test")
-
+	data := models.Data{
+		ID:    primitive.NewObjectID(),
+		Name:  dataJson.Name,
+		Phone: dataJson.Phone,
+	}
 	uOpts := &options.UpdateOptions{}
-	res, err := mCollection.UpdateByID(ctx, data.ID, data, uOpts)
+	filter := bson.D{{"Name", data.Name}}
+	update := bson.D{{"$set", bson.D{{"Phone", data.Phone}}}}
+	res, err := mCollection.UpdateOne(ctx, filter, update, uOpts)
 	if err != nil {
 		return err
 	}
-	logrus.Info("Updated ids: ", res.UpsertedID)
+	logrus.Info("Updated ids: ", res.ModifiedCount)
 	return nil
 }
-func (st *Storage) DeleteData(ctx context.Context, data *models.Data) error {
+func (st *Storage) DeleteData(ctx context.Context, data *models.DataJSON) error {
 	logrus.Info("UpdateData in Mongo Storage")
 	cOpts := options.Client().ApplyURI(st.ConnectionString)
 	mClient, err := mongo.Connect(ctx, cOpts)
@@ -89,9 +132,7 @@ func (st *Storage) DeleteData(ctx context.Context, data *models.Data) error {
 	mCollection := mClient.Database("artforintrovert").Collection("test")
 
 	dOpts := &options.DeleteOptions{}
-	filter := bson.D{
-		{"Name", bson.D{{"$eq", data.Name}}},
-	}
+	filter := bson.D{{"Name", data.Name}}
 	res, err := mCollection.DeleteOne(ctx, filter, dOpts)
 	if err != nil {
 		return err
@@ -99,7 +140,7 @@ func (st *Storage) DeleteData(ctx context.Context, data *models.Data) error {
 	logrus.Info("Delete ids: ", res.DeletedCount)
 	return nil
 }
-func (st *Storage) readFromMongoDB(ctx context.Context, data *models.Data) ([]models.Data, error) {
+func (st *Storage) readFromMongoDB(ctx context.Context, data *models.DataJSON) ([]models.Data, error) {
 	cOpts := options.Client().ApplyURI(st.ConnectionString)
 	mClient, err := mongo.Connect(ctx, cOpts)
 	if err != nil {
@@ -131,7 +172,8 @@ func (st *Storage) readFromMongoDB(ctx context.Context, data *models.Data) ([]mo
 		if err := cursor.Decode(&dt); err != nil {
 			break
 		}
-		logrus.Info("find data item: ", dt.Name)
+		//logrus.Info("find data item: ", dt.Name)
+
 		dataSlice = append(dataSlice, dt)
 	}
 	if len(dataSlice) == 0 {

@@ -6,7 +6,10 @@ import (
 )
 
 type Storage interface {
-	GetList(ctx context.Context) ([]models.Data, error)
-	UpdateData(ctx context.Context, data *models.Data) error
-	DeleteData(ctx context.Context, data *models.Data) error
+	//Получаем из БД записи(все или по фильтру name)
+	GetList(ctx context.Context, name string) ([]models.Data, error)
+	//Обновляем запись в БД
+	UpdateData(ctx context.Context, data *models.DataJSON) error
+	//Удаляем запись в БД
+	DeleteData(ctx context.Context, data *models.DataJSON) error
 }

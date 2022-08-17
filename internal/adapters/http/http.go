@@ -3,7 +3,6 @@ package http
 import (
 	"artforintrovert_test/internal/config"
 	"artforintrovert_test/internal/domain/service"
-	"artforintrovert_test/internal/ports"
 	"context"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -11,23 +10,20 @@ import (
 
 type Rest struct {
 	Ctx      context.Context
-	Service  ports.Service
+	Service  *service.TestService
 	Port     string
 	BasePath string
 }
 
 func New(ctx context.Context, serviceApp *service.TestService, cfg *config.Config) *Rest {
-	port := cfg.Listen.Ports.Main
-	basePath := cfg.Listen.Paths.Base
-
 	return &Rest{
 		Ctx:      ctx,
 		Service:  serviceApp,
-		Port:     port,
-		BasePath: basePath,
+		Port:     cfg.Listen.Ports.Main,
+		BasePath: cfg.Listen.Paths.Base,
 	}
 }
-func (r *Rest) Start() error {
+func (r *Rest) Start(_ context.Context) error {
 	router := chi.NewRouter()
 	router.Group(r.serviceRoutes)
 

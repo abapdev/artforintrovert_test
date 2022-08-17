@@ -3,6 +3,5 @@ listen:
     base: "/testapp"
   ports:
     main: 3000
-Storage:
-   mongo:
+  mongo:
     connect: "mongodb://localhost:27017/"

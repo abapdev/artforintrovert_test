@@ -1,12 +1,14 @@
 package ports
 
 import (
-	"artforintrovert_test/internal/domain/models"
-	"context"
+	"net/http"
 )
 
-type Service interface {
-	List(ctx context.Context) ([]models.Data, error)
-	Update(ctx context.Context, data *models.Data) error
-	Delete(ctx context.Context, data *models.Data) error
+type ServiceHTTP interface {
+	//обработчик эндпоинта GET list
+	List(writer http.ResponseWriter, request *http.Request)
+	//обработчик эндпоинта Patch name
+	Update(writer http.ResponseWriter, request *http.Request)
+	//обработчик эндпоинта Delete name
+	Delete(writer http.ResponseWriter, request *http.Request)
 }
