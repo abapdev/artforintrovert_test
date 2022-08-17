@@ -1,6 +1,7 @@
 package application
 
 import (
+	"artforintrovert_test/internal/adapters/http"
 	"artforintrovert_test/internal/adapters/mongo"
 	"artforintrovert_test/internal/config"
 	"artforintrovert_test/internal/domain/service"
@@ -31,9 +32,14 @@ func Start(ctx context.Context) {
 	logrus.Info("Database connected successful")
 
 	logrus.Info("Test service initialization")
-	testApp := service.New(ctx, db)
+	testApp, err := service.New(ctx, db)
+	if err != nil {
+		logrus.WithError(err).Fatal("Service do not started")
+		return
+	}
+	logrus.Info("Test service initialization successful")
 
-	restServer := rest.New(ctx, testApp, cfg)
+	restServer := http.New(ctx, testApp, cfg)
 	logrus.Info("Starting http API on http://localhost:" + cfg.Listen.Ports.Main)
 	go func() {
 		logrus.Fatal(restServer.Start())
